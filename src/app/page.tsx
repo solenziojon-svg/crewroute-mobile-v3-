@@ -3,11 +3,11 @@
 import { useState, useRef } from "react";
 
 export default function Home() {
-  const = useState<"estimate" | "audit">("estimate");
-  const = useState<"upload" | "loading" | "result" | "error">("upload");
-  const = useState<string>("");
-  const = useState<any>(null);
-  const = useState<string>("");
+  const [mode, setMode] = useState<"estimate" | "audit">("estimate");
+  const [phase, setPhase] = useState<"upload" | "loading" | "result" | "error">("upload");
+  const [preview, setPreview] = useState<string>("");
+  const [result, setResult] = useState<any>(null);
+  const [errorMsg, setErrorMsg] = useState<string>("");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
