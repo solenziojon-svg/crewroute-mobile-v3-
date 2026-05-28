@@ -1,5 +1,5 @@
 {
-  "name": "crewroute-mobile-v3",
+  "name": "crewroute-mobile",
   "version": "0.3.0",
   "private": true,
   "scripts": {
@@ -8,15 +8,21 @@
     "start": "next start"
   },
   "dependencies": {
-    "next": "15.3.0",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0",
-    "@anthropic-ai/sdk": "^0.27.3"
+    "next": "15.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "@anthropic-ai/sdk": "^0.39.0"
   },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "typescript": "^5"
+  },
+  "overrides": {
+    "node-domexception": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
-} 
+}
