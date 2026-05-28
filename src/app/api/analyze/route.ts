@@ -79,7 +79,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Photo too large (max 10MB)." }, { status: 413 });
   }
 
-  // Convert image to base64 (safe method)
   const bytes = await photo.arrayBuffer();
   const base64 = Buffer.from(bytes).toString("base64");
   const mediaType = (photo.type || "image/jpeg") as "image/jpeg" | "image/png" | "image/webp";
@@ -135,7 +134,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Empty response from Claude." }, { status: 502 });
     }
 
-    // Clean any markdown code fences
     const cleaned = rawText.replace(/^```json\s*/i, "").replace(/\s*```$/i, "").trim();
     const parsed = JSON.parse(cleaned);
 
