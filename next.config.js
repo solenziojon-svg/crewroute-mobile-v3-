@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  serverExternalPackages: ,
+  serverExternalPackages: ["@anthropic-ai/sdk"],
 };
 
 module.exports = nextConfig;
