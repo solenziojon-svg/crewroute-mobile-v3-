@@ -3,4 +3,4 @@ const nextConfig = {
   serverExternalPackages: ["@anthropic-ai/sdk"],
 };
 
-module.exports = nextConfig;
+module.exports = nextConfig; 
