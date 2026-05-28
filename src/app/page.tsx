@@ -1,102 +1,108 @@
-"use client"; 
+"use client";
 
 import { useState, useRef } from "react";
 
 export default function Home() {
   const [mode, setMode] = useState<"estimate" | "audit">("estimate");
-  const [phase, setPhase] = useState<"upload" | "loading" | "result" | "error">("upload");
+  const [phase, setPhase] = useState<"idle" | "loading" | "done" | "error">("idle");
   const [preview, setPreview] = useState<string>("");
   const [result, setResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string>("");
-  const fileRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  function switchMode(newMode: "estimate" | "audit") {
+    setMode(newMode);
+    reset();
+  }
+
+  function reset() {
+    setPhase("idle");
+    setPreview("");
+    setResult(null);
+    setErrorMsg("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Show preview
     const reader = new FileReader();
-    reader.onload = (ev) => setPreview(ev.target?.result as string);
+    reader.onload = (event) => {
+      setPreview(event.target?.result as string);
+    };
     reader.readAsDataURL(file);
 
     setPhase("loading");
+    setResult(null);
     setErrorMsg("");
 
-    const form = new FormData();
-    form.append("photo", file);
-    form.append("mode", mode);
+    const formData = new FormData();
+    formData.append("photo", file);
+    formData.append("mode", mode);
 
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
-        body: form,
+        body: formData,
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        setErrorMsg(data.error || "Server error");
-        setPhase("error");
-        return;
+        throw new Error(data.error || "Something went wrong");
       }
 
       setResult(data);
-      setPhase("result");
-    } catch (err) {
-      setErrorMsg("Failed to analyze photo");
+      setPhase("done");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to analyze photo");
       setPhase("error");
     }
-  };
-
-  const reset = () => {
-    setPhase("upload");
-    setPreview("");
-    setResult(null);
-    setErrorMsg("");
-    if (fileRef.current) fileRef.current.value = "";
-  };
+  }
 
   return (
     <main style={{
+      minHeight: "100dvh",
       background: "#0A0C14",
       color: "#E8ECF1",
-      minHeight: "100vh",
-      padding: "20px",
-      fontFamily: "system-ui, -apple-system, sans-serif"
+      fontFamily: "system-ui, sans-serif",
+      padding: "20px"
     }}>
       <div style={{ maxWidth: "480px", margin: "0 auto" }}>
-        <div style={{ 
-          display: "flex", 
-          justifyContent: "space-between", 
-          alignItems: "center",
-          marginBottom: "24px"
-        }}>
+        
+        {/* Header */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "24px" }}>
           <div style={{ fontSize: "22px", fontWeight: 800 }}>🌿 CrewRoute</div>
           
           <div style={{ display: "flex", gap: "6px" }}>
             <button
-              onClick={() => { setMode("estimate"); reset(); }}
+              onClick={() => switchMode("estimate")}
               style={{
                 padding: "8px 16px",
                 borderRadius: "8px",
                 border: "none",
-                fontSize: "13px",
+                fontSize: "14px",
                 fontWeight: 600,
                 background: mode === "estimate" ? "#FF6B35" : "#1F2635",
                 color: mode === "estimate" ? "#000" : "#8A95A8",
+                cursor: "pointer"
               }}
             >
               Estimate
             </button>
             <button
-              onClick={() => { setMode("audit"); reset(); }}
+              onClick={() => switchMode("audit")}
               style={{
                 padding: "8px 16px",
                 borderRadius: "8px",
                 border: "none",
-                fontSize: "13px",
+                fontSize: "14px",
                 fontWeight: 600,
                 background: mode === "audit" ? "#FF6B35" : "#1F2635",
                 color: mode === "audit" ? "#000" : "#8A95A8",
+                cursor: "pointer"
               }}
             >
               Audit
@@ -107,25 +113,21 @@ export default function Home() {
         <h1 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "8px" }}>
           {mode === "estimate" ? "Yard Estimate" : "Job Audit"}
         </h1>
-        <p style={{ color: "#8A95A8", fontSize: "14px", marginBottom: "24px" }}>
-          {mode === "estimate" 
-            ? "Take a photo of the yard to get an instant price." 
-            : "Take a photo of completed work to audit quality."}
-        </p>
 
-        {phase === "upload" && (
+        {/* Idle State - Upload */}
+        {phase === "idle" && (
           <div>
             <input
-              ref={fileRef}
+              ref={fileInputRef}
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={handleFileChange}
+              onChange={handlePhotoUpload}
               style={{ display: "none" }}
             />
             
             <div 
-              onClick={() => fileRef.current?.click()}
+              onClick={() => fileInputRef.current?.click()}
               style={{
                 border: "2px dashed #333",
                 borderRadius: "16px",
@@ -139,35 +141,36 @@ export default function Home() {
               <div style={{ fontSize: "18px", fontWeight: 600, marginBottom: "8px" }}>
                 Tap to take a photo
               </div>
-              <div style={{ fontSize: "13px", color: "#8A95A8" }}>
-                or choose from your gallery
+              <div style={{ fontSize: "14px", color: "#8A95A8" }}>
+                or choose from gallery
               </div>
             </div>
           </div>
         )}
 
+        {/* Loading State */}
         {phase === "loading" && (
-          <div style={{ textAlign: "center", padding: "60px 20px" }}>
-            <div style={{ fontSize: "48px", marginBottom: "20px" }}>🤖</div>
+          <div style={{ textAlign: "center", padding: "40px 20px" }}>
+            {preview && (
+              <img 
+                src={preview} 
+                alt="preview" 
+                style={{ width: "100%", borderRadius: "12px", marginBottom: "24px" }} 
+              />
+            )}
             <div style={{ fontSize: "18px", fontWeight: 600 }}>Analyzing photo...</div>
-            <div style={{ color: "#8A95A8", marginTop: "8px" }}>
-              Claude Vision is processing your image
-            </div>
+            <div style={{ color: "#8A95A8", marginTop: "8px" }}>Claude Vision is working</div>
           </div>
         )}
 
-        {phase === "result" && result && (
+        {/* Done State */}
+        {phase === "done" && result && (
           <div>
             {preview && (
               <img 
                 src={preview} 
                 alt="preview" 
-                style={{ 
-                  width: "100%", 
-                  borderRadius: "12px", 
-                  marginBottom: "20px",
-                  border: "1px solid #1F2635"
-                }} 
+                style={{ width: "100%", borderRadius: "12px", marginBottom: "20px" }} 
               />
             )}
             
@@ -176,11 +179,11 @@ export default function Home() {
               border: "1px solid #1F2635", 
               borderRadius: "12px", 
               padding: "16px",
-              marginBottom: "16px"
+              marginBottom: "20px"
             }}>
               <pre style={{ 
                 whiteSpace: "pre-wrap", 
-                fontSize: "13px", 
+                fontSize: "14px", 
                 margin: 0,
                 color: "#E8ECF1"
               }}>
@@ -198,7 +201,8 @@ export default function Home() {
                 border: "none",
                 borderRadius: "12px",
                 fontSize: "16px",
-                fontWeight: 700
+                fontWeight: 700,
+                cursor: "pointer"
               }}
             >
               Take Another Photo
@@ -206,35 +210,40 @@ export default function Home() {
           </div>
         )}
 
+        {/* Error State */}
         {phase === "error" && (
-          <div style={{ 
-            background: "rgba(248, 113, 113, 0.1)", 
-            border: "1px solid rgba(248, 113, 113, 0.3)",
-            borderRadius: "12px",
-            padding: "20px",
-            textAlign: "center"
-          }}>
-            <div style={{ color: "#F87171", fontWeight: 600, marginBottom: "8px" }}>
-              Something went wrong
+          <div>
+            <div style={{ 
+              background: "rgba(248,113,113,0.1)", 
+              border: "1px solid rgba(248,113,113,0.3)", 
+              borderRadius: "12px", 
+              padding: "20px",
+              marginBottom: "20px"
+            }}>
+              <div style={{ color: "#F87171", fontWeight: 600, marginBottom: "8px" }}>
+                Something went wrong
+              </div>
+              <div style={{ color: "#8A95A8" }}>{errorMsg}</div>
             </div>
-            <div style={{ color: "#8A95A8", fontSize: "14px", marginBottom: "16px" }}>
-              {errorMsg}
-            </div>
+
             <button 
               onClick={reset}
               style={{
-                padding: "12px 24px",
+                width: "100%",
+                padding: "16px",
                 background: "#FF6B35",
                 color: "#000",
                 border: "none",
-                borderRadius: "8px",
-                fontWeight: 600
+                borderRadius: "12px",
+                fontSize: "16px",
+                fontWeight: 700
               }}
             >
               Try Again
             </button>
           </div>
         )}
+
       </div>
     </main>
   );
